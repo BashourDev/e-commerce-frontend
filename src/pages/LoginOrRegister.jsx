@@ -89,6 +89,8 @@ export const Login = ({ isLogin, setIsLogin, isLoading, setIsLoading }) => {
 };
 
 export const Register = ({ isLogin, setIsLogin, isLoading, setIsLoading }) => {
+  const userContext = useContext(UserContext);
+  const navigate = useNavigate();
   const initialValues = {
     name: "",
     email: "",
@@ -101,6 +103,27 @@ export const Register = ({ isLogin, setIsLogin, isLoading, setIsLoading }) => {
     email: Yup.string().required().label("Email"),
     password: Yup.string().required().label("Password"),
   });
+
+  const handleRegister = async (values) => {
+    setIsLoading(true);
+    try {
+      await api.get(
+        `${process.env.REACT_APP_API_ABSOLUTE}/sanctum/csrf-cookie`
+      );
+      const res = await api.post("/register", values);
+      userContext.setUser(res?.data?.user);
+      setUser(res?.data?.user);
+      setToken(res?.data?.token);
+      navigate("/admin/products");
+    } catch (error) {
+      if (error?.response?.status === 401) {
+        toast.error("error with username or password");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <>
       <h2 className="text-dark my-4 text-lg lg:text-xl">Register</h2>
@@ -108,7 +131,7 @@ export const Register = ({ isLogin, setIsLogin, isLoading, setIsLoading }) => {
         <AppForm
           initialValues={initialValues}
           validationSchema={validationSchema}
-          onSubmit={null}
+          onSubmit={(values) => handleRegister(values)}
         >
           <AppInput
             id={"name"}
