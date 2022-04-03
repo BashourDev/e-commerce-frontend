@@ -192,7 +192,7 @@ const ProductForm = () => {
         <ProgressBar
           height="14px"
           completed={uploadProgress}
-          className="w-full col-span-2"
+          className="w-full col-span-1 lg:col-span-2"
           labelClassName="text-xs text-white mx-2 font-semibold font-lato"
           bgColor="#f3dac2"
         />
