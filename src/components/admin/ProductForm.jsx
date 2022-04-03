@@ -15,13 +15,18 @@ import AppSelectProductCategory from "./AppSelectProductCategory";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import Brands from "../../pages/admin/Brands";
+import AppSelectTags from "./AppSelectTags";
+import Tags from "../../pages/admin/Tags";
 
 const ProductForm = () => {
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const [isBrandsOpen, setIsBrandsOpen] = useState(false);
+  const [isTagsOpen, setIsTagsOpen] = useState(false);
   const [photosURLs, setPhotosURLs] = useState([]);
   const [photos, setPhotos] = useState([]);
   const [QNS, setQNS] = useState([]);
+  const [tags, setTags] = useState([]);
+  const [selectedTags, setSelectedTags] = useState([]);
   const [color, setColor] = useState("#000000");
   const [size, setSize] = useState("");
   const [quantity, setQuantity] = useState(0);
@@ -54,10 +59,34 @@ const ProductForm = () => {
     setBrands(res.data);
   };
 
+  const getTags = async () => {
+    const res = await api.get("/tags");
+    setTags(res.data);
+  };
+
+  const handleTagsChange = (tag) => {
+    setSelectedTags((old) => [...old, tag]);
+  };
+
+  const handleTagsRemove = (sTag) => {
+    setSelectedTags((old) => old.filter((tag) => tag.id !== sTag.id));
+  };
+
+  const handleRemoveQNS = (i) => {
+    setQNS((old) => old.filter((_qns, j) => j !== i));
+  };
+
   useEffect(() => {
     getBrands();
+  }, [isBrandsOpen]);
+
+  useEffect(() => {
+    getTags();
+  }, [isTagsOpen]);
+
+  useEffect(() => {
     getCategories();
-  }, []);
+  }, [isCategoriesOpen]);
 
   const create = async (values) => {
     // let fl = new FileListItems(photos);
@@ -88,7 +117,7 @@ const ProductForm = () => {
       formData.append("discount", values.discount);
       formData.append("category", JSON.stringify(values.category));
       formData.append("brand", JSON.stringify(values.brand));
-      formData.append("tags", values.tags);
+      formData.append("tags", JSON.stringify(selectedTags));
       formData.append("specifics", JSON.stringify(QNS));
       // formData.append("photos", fl);
       // console.log(fl);
@@ -160,8 +189,7 @@ const ProductForm = () => {
           sellPrice: +"",
           discount: +"",
           category: "",
-          brand: "",
-          tags: "",
+          brand: {},
         }}
         validationSchema={Yup.object().shape({})}
         onSubmit={create}
@@ -204,12 +232,21 @@ const ProductForm = () => {
           />
         </div>
         <div className="col-span-2 grid grid-cols-6 lg:grid-cols-12 lg:gap-x-20 items-center justify-center">
-          <AppInput
-            id={"tags"}
-            label="Product Tags:"
-            placeholder={"product tags"}
-            containerClassName={"col-span-6"}
-          />
+          <div className="grid grid-cols-6 items-center col-span-6 gap-x-1">
+            <AppSelectTags
+              label="Product Tags:"
+              placeholder={"product tags"}
+              className={"col-span-5"}
+              options={tags}
+              handleChange={handleTagsChange}
+            />
+            <AppButton
+              className="col-span-1 mt-8 px-0 flex items-center justify-center"
+              onClick={() => setIsTagsOpen(true)}
+            >
+              {<AiOutlinePlus className="self-center" />}
+            </AppButton>
+          </div>
           <div className="grid grid-cols-6 items-center col-span-6 gap-x-1">
             <AppSelect
               name={"brand"}
@@ -224,6 +261,20 @@ const ProductForm = () => {
               {<AiOutlinePlus className="self-center" />}
             </AppButton>
           </div>
+        </div>
+        <div className="flex flex-wrap">
+          {selectedTags.map((item, i) => (
+            <div
+              key={i}
+              className="bg-primary text-dark h-7 rounded-full m-1 px-2 flex justify-between items-center space-x-3 w-fit"
+            >
+              <span className="flex items-center">{item?.name}</span>
+              <MdCancel
+                onClick={() => handleTagsRemove(item)}
+                className="text-lg cursor-pointer"
+              />
+            </div>
+          ))}
         </div>
         <div className="col-span-2 lg:col-span-2 grid grid-cols-1 lg:grid-cols-3 gap-x-20 gap-y-4">
           <AppInput
@@ -324,7 +375,10 @@ const ProductForm = () => {
                   {" / "}
                   {item.size} {" / "} {item.quantity}
                 </span>
-                <MdCancel className="text-lg cursor-pointer" />
+                <MdCancel
+                  onClick={() => handleRemoveQNS(i)}
+                  className="text-lg cursor-pointer"
+                />
               </div>
             ))}
           </div>
@@ -333,6 +387,7 @@ const ProductForm = () => {
       </AppForm>
       <Categories isOpen={isCategoriesOpen} setIsOpen={setIsCategoriesOpen} />
       <Brands isOpen={isBrandsOpen} setIsOpen={setIsBrandsOpen} />
+      <Tags isOpen={isTagsOpen} setIsOpen={setIsTagsOpen} />
     </div>
   );
 };

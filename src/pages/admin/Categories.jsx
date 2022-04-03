@@ -10,9 +10,11 @@ import * as Yup from "yup";
 import AppSubmitButton from "../../components/AppSubmitButton";
 import api from "../../api/api";
 
-const CategoryForm = () => {
+const CategoryForm = ({ setIsOpen }) => {
   const [roots, setRoots] = useState([]);
   const [sections, setSections] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
   const types = [
     {
       id: 0,
@@ -40,17 +42,27 @@ const CategoryForm = () => {
   }, []);
 
   const create = async (values) => {
-    await api.get(process.env.REACT_APP_API_ABSOLUTE + "/sanctum/csrf-cookie");
-    const res = await api.post("/categories/create", values);
-    console.log(res);
+    setIsLoading(true);
+    try {
+      await api.get(
+        process.env.REACT_APP_API_ABSOLUTE + "/sanctum/csrf-cookie"
+      );
+      await api.post("/categories/create", values);
+      setIsOpen(false);
+    } catch (error) {
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <>
       <Formik
         enableReinitialize
-        initialValues={{ type: types[0] }}
-        validationSchema={Yup.object().shape({})}
+        initialValues={{ type: types[0], name: "" }}
+        validationSchema={Yup.object().shape({
+          name: Yup.string().required().label("Name"),
+        })}
         onSubmit={create}
       >
         {({ values }) => (
@@ -80,7 +92,7 @@ const CategoryForm = () => {
 };
 
 const Categories = ({ isOpen, setIsOpen }) => {
-  const [isCreate, setIsCreate] = useState(false);
+  const [isCreate, setIsCreate] = useState(true);
   let data = [
     { name: "cat 1", productsCount: 3 },
     { name: "cat 2", productsCount: 4 },
@@ -88,7 +100,7 @@ const Categories = ({ isOpen, setIsOpen }) => {
 
   const onClose = () => {
     setIsOpen(false);
-    setTimeout(() => setIsCreate(false), 1000);
+    // setTimeout(() => setIsCreate(false), 1000);
   };
 
   return (
@@ -113,7 +125,7 @@ const Categories = ({ isOpen, setIsOpen }) => {
           </div>
         </>
       ) : (
-        <CategoryForm />
+        <CategoryForm setIsOpen={setIsOpen} />
       )}
     </AppModal>
   );

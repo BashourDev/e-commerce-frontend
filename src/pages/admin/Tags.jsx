@@ -10,7 +10,7 @@ import * as Yup from "yup";
 import AppSubmitButton from "../../components/AppSubmitButton";
 import api from "../../api/api";
 
-const BrandForm = ({ setIsOpen }) => {
+const TagForm = ({ setIsOpen }) => {
   const [isLoading, setIsLoading] = useState(false);
   const create = async (values) => {
     setIsLoading(true);
@@ -18,7 +18,7 @@ const BrandForm = ({ setIsOpen }) => {
       await api.get(
         process.env.REACT_APP_API_ABSOLUTE + "/sanctum/csrf-cookie"
       );
-      await api.post("/brands/create", values);
+      await api.post("/tags/create", values);
       setIsOpen(false);
     } catch (error) {
     } finally {
@@ -40,7 +40,7 @@ const BrandForm = ({ setIsOpen }) => {
           <>
             <AppInput id={"name"} label={"Name:"} placeholder={"enter name"} />
             <div className="flex justify-around items-center py-3">
-              <AppSubmitButton>Add</AppSubmitButton>
+              <AppSubmitButton isLoading={isLoading}>Add</AppSubmitButton>
               <AppButton className="bg-transparent text-primaryDark">
                 Cancel
               </AppButton>
@@ -52,16 +52,16 @@ const BrandForm = ({ setIsOpen }) => {
   );
 };
 
-const Brands = ({ isOpen, setIsOpen }) => {
+const Tags = ({ isOpen, setIsOpen }) => {
   const onClose = () => {
     setIsOpen(false);
   };
 
   return (
-    <AppModal isOpen={isOpen} onClose={onClose} title={"Brands"}>
-      <BrandForm setIsOpen={setIsOpen} />
+    <AppModal isOpen={isOpen} onClose={onClose} title={"Tags"}>
+      <TagForm setIsOpen={setIsOpen} />
     </AppModal>
   );
 };
 
-export default Brands;
+export default Tags;

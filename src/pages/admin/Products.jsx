@@ -46,7 +46,7 @@ const Products = () => {
         </NavLink>
       </div>
       <div className="w-full place-items-center px-3 lg:px-20 py-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
-        {products.map((product) => (
+        {products?.data?.map((product) => (
           <ProductCard
             key={product?.id}
             id={product?.id}
