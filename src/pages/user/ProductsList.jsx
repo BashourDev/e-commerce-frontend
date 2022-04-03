@@ -42,7 +42,7 @@ const ProductsList = ({ products = [], isLoading, isFetchingNextPage }) => {
                           </a>
                         </h3>
                         <p className="mt-1 text-sm text-gray-500">
-                          {product.description}
+                          {product.brand?.name}
                         </p>
                       </div>
                       <p className="text-sm font-medium text-gray-900">
