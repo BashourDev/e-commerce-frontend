@@ -16,6 +16,8 @@ import UserContext from "../../contexts/userContext";
 import api from "../../api/api";
 import { removeToken } from "../../api/token";
 import { removeUser } from "../../api/user";
+import { useInfiniteQuery } from "react-query";
+import WindowContext from "../../contexts/windowContext";
 
 const navigation = {
   categories: [
@@ -154,34 +156,62 @@ function classNames(...classes) {
 export default function Home() {
   const [open, setOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
-  const [products, setProducts] = useState([]);
+  // const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
   const userContext = useContext(UserContext);
   const navigate = useNavigate();
+  const windowContext = useContext(WindowContext);
 
   const onKeyPress = (e) => {
-    if (e.key === "Enter") {
-      getProducts();
-    }
+    // if (e.key === "Enter") {
+    //   getProducts();
+    // }
   };
 
-  const getProducts = async () => {
-    try {
-      await api.get(
-        `${process.env.REACT_APP_API_ABSOLUTE}/sanctum/csrf-cookie`
-      );
-      const res = await api.get(`/products?search=${search}`);
-      setProducts(res.data);
-    } catch (error) {
-      console.log("====================================");
-      console.log(error);
-      console.log("====================================");
-    }
-  };
+  // const getProducts = ({ pageParam = 1 }, search) => {
+  //   // await api.get(`${process.env.REACT_APP_API_ABSOLUTE}/sanctum/csrf-cookie`);
+  //   return api.get(`/products?search=${search}&page=${pageParam}`);
+  // };
 
-  useEffect(() => {
-    getProducts();
-  }, []);
+  // const {
+  //   data: products,
+  //   fetchNextPage,
+  //   hasNextPage,
+  //   isFetching,
+  //   isFetchingNextPage,
+  //   isLoading,
+  // } = useInfiniteQuery(
+  //   ["search-products", search],
+  //   (props) => getProducts(props, search),
+  //   {
+  //     getNextPageParam: (pages) => {
+  //       if (pages.data.current_page === pages.data.last_page) {
+  //         return undefined;
+  //       } else {
+  //         return +pages.data.current_page + 1;
+  //       }
+  //     },
+  //   }
+  // );
+
+  // const handleScroll = (e) => {
+  //   const bottom =
+  //     e.target.scrollingElement.scrollHeight -
+  //       e.target.scrollingElement.scrollTop ===
+  //     e.target.scrollingElement.clientHeight;
+  //   if (bottom) {
+  //     fetchNextPage();
+  //     console.log("dasdasdsa");
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   window.addEventListener("scroll", (e) => handleScroll(e));
+
+  //   return () => {
+  //     window.removeEventListener("scroll", (e) => handleScroll(e));
+  //   };
+  // }, []);
 
   const handleLogout = async () => {
     await api.get("/logout");
@@ -563,7 +593,7 @@ export default function Home() {
                     inputClassName={"placeholder:text-gray-500"}
                   />
                   <AppButton
-                    onClick={() => getProducts()}
+                    onClick={() => null}
                     className="rounded-l-none hover:bg-primaryDark/90 hover:text-white"
                   >
                     search
@@ -659,7 +689,7 @@ export default function Home() {
           </div>
         </nav>
       </header>
-      <Outlet context={[products, setProducts]} />
+      <Outlet context={[search]} />
     </div>
   );
 }

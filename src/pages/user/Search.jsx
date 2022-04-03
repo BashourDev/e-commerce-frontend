@@ -11,6 +11,7 @@ import {
 import ProductsList from "./ProductsList";
 import api from "../../api/api";
 import { useOutletContext } from "react-router-dom";
+import { useInfiniteQuery } from "react-query";
 
 const sortOptions = [
   { name: "Most Popular", href: "#", current: true },
@@ -69,7 +70,7 @@ function classNames(...classes) {
 }
 
 export default function Search() {
-  const [products, setProducts] = useOutletContext();
+  const [search] = useOutletContext();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   // const [products, setProducts] = useState([]);
   // const [search, setSearch] = useState("");
@@ -82,6 +83,51 @@ export default function Search() {
   // useEffect(() => {
   //   getProducts();
   // });
+
+  const getProducts = ({ pageParam = 1 }, search) => {
+    // await api.get(`${process.env.REACT_APP_API_ABSOLUTE}/sanctum/csrf-cookie`);
+    return api.get(`/products?search=${search}&page=${pageParam}`);
+  };
+
+  const {
+    data: products,
+    fetchNextPage,
+    hasNextPage,
+    isFetching,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteQuery(
+    ["search-products", search],
+    (props) => getProducts(props, search),
+    {
+      getNextPageParam: (pages) => {
+        if (pages.data.current_page === pages.data.last_page) {
+          return undefined;
+        } else {
+          return +pages.data.current_page + 1;
+        }
+      },
+    }
+  );
+
+  const handleScroll = (e) => {
+    const bottom =
+      e.target.scrollingElement.scrollHeight -
+        e.target.scrollingElement.scrollTop ===
+      e.target.scrollingElement.clientHeight;
+    if (bottom) {
+      fetchNextPage();
+      console.log("dasdasdsa");
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener("scroll", (e) => handleScroll(e));
+
+    return () => {
+      window.removeEventListener("scroll", (e) => handleScroll(e));
+    };
+  }, []);
 
   return (
     <div className="bg-white">
@@ -358,7 +404,11 @@ export default function Search() {
               {/* Product grid */}
               <div className="lg:col-span-3">
                 {/* Replace with your content */}
-                <ProductsList products={products} />
+                <ProductsList
+                  products={products}
+                  isLoading={isLoading}
+                  isFetchingNextPage={isFetchingNextPage}
+                />
                 {/* /End replace */}
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { getUser } from "./api/user";
 import SetupInterceptors from "./api/SetupInterceptors";
@@ -16,6 +16,9 @@ import Auth from "./pages/Auth";
 import Stats from "./pages/admin/Stats";
 import Home from "./pages/user/Home";
 import Search from "./pages/user/Search";
+import { QueryClient, QueryClientProvider } from "react-query";
+
+const queryClient = new QueryClient();
 
 function NavigateFunctionComponent(props) {
   let navigate = useNavigate();
@@ -39,6 +42,7 @@ function App() {
   const [windowWidth, setWindowWidth] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
+  let containerRef = useRef(null);
 
   useEffect(() => {
     // if (Object.keys(user).length === 0) {
@@ -69,27 +73,31 @@ function App() {
   }, []);
 
   return (
-    <div className="font-lato">
+    <div className="font-lato" ref={containerRef}>
       <NavigateFunctionComponent />
-      <WindowContext.Provider value={{ width: windowWidth }}>
+      <WindowContext.Provider
+        value={{ width: windowWidth, container: containerRef }}
+      >
         <UserContext.Provider value={{ user: user, setUser: setUser }}>
-          <ToastContainer className={"z-50"} autoClose={5000} />
-          <Routes>
-            <Route path="/" element={<Home />}>
-              <Route path="" element={<Search />} />
-            </Route>
-
-            <Route path="/login" element={<Auth />} />
-
-            {user.isAdmin && (
-              <Route path="/admin" element={<Dashboard />}>
-                <Route path="products" element={<Products />} />
-                <Route path="products/add" element={<ProductForm />} />
-                <Route path="orders" element={<Orders />} />
-                <Route path="stats" element={<Stats />} />
+          <QueryClientProvider client={queryClient}>
+            <ToastContainer className={"z-50"} autoClose={5000} />
+            <Routes>
+              <Route path="/" element={<Home />}>
+                <Route path="" element={<Search />} />
               </Route>
-            )}
-          </Routes>
+
+              <Route path="/login" element={<Auth />} />
+
+              {user.isAdmin && (
+                <Route path="/admin" element={<Dashboard />}>
+                  <Route path="products" element={<Products />} />
+                  <Route path="products/add" element={<ProductForm />} />
+                  <Route path="orders" element={<Orders />} />
+                  <Route path="stats" element={<Stats />} />
+                </Route>
+              )}
+            </Routes>
+          </QueryClientProvider>
         </UserContext.Provider>
       </WindowContext.Provider>
     </div>
