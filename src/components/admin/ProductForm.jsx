@@ -17,6 +17,7 @@ import { useNavigate } from "react-router-dom";
 import Brands from "../../pages/admin/Brands";
 import AppSelectTags from "./AppSelectTags";
 import Tags from "../../pages/admin/Tags";
+import ProgressBar from "@ramonak/react-progress-bar";
 
 const ProductForm = () => {
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
@@ -30,6 +31,7 @@ const ProductForm = () => {
   const [color, setColor] = useState("#000000");
   const [size, setSize] = useState("");
   const [quantity, setQuantity] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const navigate = useNavigate();
@@ -121,8 +123,14 @@ const ProductForm = () => {
       formData.append("specifics", JSON.stringify(QNS));
       // formData.append("photos", fl);
       // console.log(fl);
-      const res = await api.post("/products/create", formData);
+      const res = await api.post("/products/create", formData, {
+        onUploadProgress: (progressEvent) =>
+          setUploadProgress(
+            Number.parseInt((progressEvent.loaded / progressEvent.total) * 100)
+          ),
+      });
       toast.success("product added successfully");
+      setUploadProgress(0);
       navigate("/admin/products");
 
       // const resI = await api.post(`/products/${"18"}/add-images`, formData, {
@@ -180,6 +188,15 @@ const ProductForm = () => {
 
   return (
     <div className="h-fit mx-3 xl:mx-52 px-1 lg:px-10 ring-1 rounded-lg ring-lightGray/50 bg-white py-6 my-5 shadow-lg grid grid-cols-1 lg:grid-cols-2 lg:gap-x-20 gap-y-4  justify-center">
+      {uploadProgress !== 0 && (
+        <ProgressBar
+          height="14px"
+          completed={uploadProgress}
+          className="w-full col-span-2"
+          labelClassName="text-xs text-white mx-2 font-semibold font-lato"
+          bgColor="#f3dac2"
+        />
+      )}
       <AppForm
         initialValues={{
           name: "",
