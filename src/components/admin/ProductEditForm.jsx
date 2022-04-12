@@ -13,14 +13,15 @@ import * as Yup from "yup";
 import api from "../../api/api";
 import AppSelectProductCategory from "./AppSelectProductCategory";
 import { toast } from "react-toastify";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Brands from "../../pages/admin/Brands";
 import AppSelectTags from "./AppSelectTags";
 import Tags from "../../pages/admin/Tags";
 import ProgressBar from "@ramonak/react-progress-bar";
 import CurrencyContext from "../../contexts/currencyContext";
 
-const ProductForm = () => {
+const ProductEditForm = () => {
+  const [product, setProduct] = useState({});
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const [isBrandsOpen, setIsBrandsOpen] = useState(false);
   const [isTagsOpen, setIsTagsOpen] = useState(false);
@@ -29,15 +30,22 @@ const ProductForm = () => {
   const [QNS, setQNS] = useState([]);
   const [tags, setTags] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
-  const [color, setColor] = useState("#000000");
-  const [colorText, setColorText] = useState("");
-  const [size, setSize] = useState("");
-  const [quantity, setQuantity] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
+  const [initialValues, setInitialValues] = useState({
+    name: "",
+    keywords: "",
+    description: "",
+    buyPrice: +"",
+    sellPrice: +"",
+    discount: +"",
+    category: "",
+    brand: "",
+  });
   const currencyContext = useContext(CurrencyContext);
   const navigate = useNavigate();
+  let { pID } = useParams();
 
   const onPhotosChange = (e) => {
     setPhotos((old) => [...old, ...e.target.files]);
@@ -52,6 +60,33 @@ const ProductForm = () => {
   const removeImage = async (i) => {
     setPhotosURLs((old) => old.filter((_photo, j) => j !== i));
     setPhotos((old) => old.filter((photo, j) => old.indexOf(photo) !== i));
+  };
+
+  const removeExistingPhoto = async (imageID) => {
+    try {
+      await api.delete(`/products/${product?.id}/images/delete/${imageID}`);
+      setProduct((old) => ({
+        ...old,
+        media: old.media.filter((o) => o.id !== imageID),
+      }));
+    } catch (error) {}
+  };
+
+  const getProduct = async () => {
+    const res = await api.get(`/products/${pID}`);
+    setProduct(res.data);
+    setInitialValues({
+      name: res?.data?.name,
+      keywords: res?.data?.keywords,
+      description: res?.data?.description,
+      buyPrice: +res?.data?.buyPrice * currencyContext?.currency?.rate,
+      sellPrice: +res?.data?.sellPrice * currencyContext?.currency?.rate,
+      discount: +res?.data?.discount,
+      category: res?.data?.categories[0][0],
+      brand: res?.data?.brand,
+    });
+    setSelectedTags((old) => [...old, ...res?.data?.tags]);
+    console.log(res.data);
   };
 
   const getCategories = async () => {
@@ -77,9 +112,9 @@ const ProductForm = () => {
     setSelectedTags((old) => old.filter((tag) => tag.id !== sTag.id));
   };
 
-  const handleRemoveQNS = (i) => {
-    setQNS((old) => old.filter((_qns, j) => j !== i));
-  };
+  useEffect(() => {
+    getProduct();
+  }, []);
 
   useEffect(() => {
     getBrands();
@@ -93,8 +128,7 @@ const ProductForm = () => {
     getCategories();
   }, [isCategoriesOpen]);
 
-  const create = async (values) => {
-    // let fl = new FileListItems(photos);
+  const update = async (values) => {
     try {
       let formData = new FormData();
 
@@ -119,25 +153,19 @@ const ProductForm = () => {
       formData.append("category", JSON.stringify(values.category));
       formData.append("brand", JSON.stringify(values.brand));
       formData.append("tags", JSON.stringify(selectedTags));
-      formData.append("specifics", JSON.stringify(QNS));
-      // formData.append("photos", fl);
-      // console.log(fl);
-      const res = await api.post("/products/create", formData, {
+
+      const res = await api.post(`/products/${product.id}/update`, formData, {
         onUploadProgress: (progressEvent) =>
           setUploadProgress(
             Number.parseInt((progressEvent.loaded / progressEvent.total) * 100)
           ),
       });
-      toast.success("product added successfully");
+      console.log("====================================");
+      console.log(res);
+      console.log("====================================");
+      toast.success("product updated successfully");
       setUploadProgress(0);
       navigate("/admin/products");
-
-      // const resI = await api.post(`/products/${"18"}/add-images`, formData, {
-      //   headers: {
-      //     "Content-Type": "multipart/form-data",
-      //   },
-      // });
-      // console.log(resI);
     } catch (error) {
       if (error?.response?.status === 403) {
         toast.error("Unauthorized");
@@ -161,18 +189,9 @@ const ProductForm = () => {
         />
       )}
       <AppForm
-        initialValues={{
-          name: "",
-          keywords: "",
-          description: "",
-          buyPrice: +"",
-          sellPrice: +"",
-          discount: +"",
-          category: "",
-          brand: {},
-        }}
+        initialValues={initialValues}
         validationSchema={Yup.object().shape({})}
-        onSubmit={create}
+        onSubmit={update}
       >
         <div className="col-span-1 lg:col-span-2 space-y-2 lg:space-y-0 lg:space-x-2 flex flex-col lg:flex-row flex-start items-center">
           <AppFileInput
@@ -193,6 +212,21 @@ const ProductForm = () => {
                   <MdDelete
                     className="text-danger text-2xl cursor-pointer"
                     onClick={() => removeImage(i)}
+                  />
+                </div>
+              </div>
+            ))}
+            {product?.media?.map((photo, i) => (
+              <div key={i} className="relative mx-1 rounded-md overflow-hidden">
+                <img
+                  src={photo?.original_url}
+                  alt={"photos"}
+                  className="max-w-xs h-28 object-cover"
+                />
+                <div className="absolute top-1 left-1 w-full h-full">
+                  <MdDelete
+                    className="text-danger text-2xl cursor-pointer"
+                    onClick={() => removeExistingPhoto(photo?.id)}
                   />
                 </div>
               </div>
@@ -297,87 +331,8 @@ const ProductForm = () => {
             {<AiOutlinePlus className="self-center" />}
           </AppButton>
         </div>
-        <div className="flex flex-col space-y-5">
-          <label>Choose Colors and Sizes and Their Quantites:</label>
 
-          <div className="space-x-0 lg:space-x-3 flex flex-col lg:flex-row items-center space-y-2 lg:space-y-0">
-            <div className="flex items-center space-x-3">
-              <label htmlFor={`color`}>Color:</label>
-              <input
-                id={`colorText`}
-                type="text"
-                value={colorText}
-                onChange={(e) => setColorText(e.target.value)}
-                placeholder="White"
-                className="border-[1px] p-1 border-lightGray rounded-md w-20 md:w-28 focus:outline-none focus:border-primary"
-              />
-              <input
-                id={`color`}
-                type="color"
-                value={color}
-                onChange={(e) => {
-                  setColor(e.target.value);
-                }}
-                className="w-7 h-7 rounded-full overflow-hidden border-0 outline-none bg-transparent"
-              />
-              <label htmlFor={`size`}>Size:</label>
-              <input
-                id={`size`}
-                type="text"
-                value={size}
-                onChange={(e) => setSize(e.target.value)}
-                placeholder="size"
-                className="border-[1px] p-1 border-lightGray rounded-md w-20 focus:outline-none focus:border-primary"
-              />
-            </div>
-            <div className="flex items-center space-x-3">
-              <label htmlFor={`quantity`}>Quantity:</label>
-              <input
-                id={`quantity`}
-                type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                placeholder="quantity"
-                className="border-[1px] p-1 border-lightGray rounded-md w-20 focus:outline-none focus:border-primary"
-              />
-              <AppButton
-                onClick={() =>
-                  setQNS((old) => [
-                    ...old,
-                    {
-                      color: color,
-                      colorText: colorText,
-                      size: size,
-                      quantity: quantity,
-                    },
-                  ])
-                }
-              >
-                Add
-              </AppButton>
-            </div>
-          </div>
-          <div className="flex flex-wrap">
-            {QNS.map((item, i) => (
-              <div
-                key={i}
-                className="bg-primary text-dark h-7 rounded-full m-1 px-2 flex justify-between items-center space-x-3 w-fit"
-              >
-                <span className="flex items-center">
-                  <MdCircle color={item.color} className={`text-lg`} />
-                  {" / "} {item.colorText}
-                  {" / "}
-                  {item.size} {" / "} {item.quantity}
-                </span>
-                <MdCancel
-                  onClick={() => handleRemoveQNS(i)}
-                  className="text-lg cursor-pointer"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-        <AppSubmitButton className="col-span-2">Add</AppSubmitButton>
+        <AppSubmitButton className="col-span-2">Update</AppSubmitButton>
       </AppForm>
       <Categories isOpen={isCategoriesOpen} setIsOpen={setIsCategoriesOpen} />
       <Brands isOpen={isBrandsOpen} setIsOpen={setIsBrandsOpen} />
@@ -386,4 +341,4 @@ const ProductForm = () => {
   );
 };
 
-export default ProductForm;
+export default ProductEditForm;

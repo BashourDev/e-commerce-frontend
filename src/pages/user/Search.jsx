@@ -10,7 +10,7 @@ import {
 } from "@heroicons/react/solid";
 import ProductsList from "./ProductsList";
 import api from "../../api/api";
-import { useOutletContext } from "react-router-dom";
+import { useLocation, useOutletContext } from "react-router-dom";
 import { useInfiniteQuery } from "react-query";
 
 const sortOptions = [
@@ -27,43 +27,6 @@ const subCategories = [
   // { name: "Hip Bags", href: "#" },
   // { name: "Laptop Sleeves", href: "#" },
 ];
-const filters = [
-  {
-    id: "color",
-    name: "Color",
-    options: [
-      { value: "white", label: "White", checked: false },
-      { value: "beige", label: "Beige", checked: false },
-      { value: "blue", label: "Blue", checked: true },
-      { value: "brown", label: "Brown", checked: false },
-      { value: "green", label: "Green", checked: false },
-      { value: "purple", label: "Purple", checked: false },
-    ],
-  },
-  {
-    id: "category",
-    name: "Category",
-    options: [
-      { value: "new-arrivals", label: "New Arrivals", checked: false },
-      { value: "sale", label: "Sale", checked: false },
-      { value: "travel", label: "Travel", checked: true },
-      { value: "organization", label: "Organization", checked: false },
-      { value: "accessories", label: "Accessories", checked: false },
-    ],
-  },
-  {
-    id: "size",
-    name: "Size",
-    options: [
-      { value: "2l", label: "2L", checked: false },
-      { value: "6l", label: "6L", checked: false },
-      { value: "12l", label: "12L", checked: false },
-      { value: "18l", label: "18L", checked: false },
-      { value: "20l", label: "20L", checked: false },
-      { value: "40l", label: "40L", checked: true },
-    ],
-  },
-];
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -72,6 +35,12 @@ function classNames(...classes) {
 export default function Search() {
   const [search] = useOutletContext();
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [selectedFilters, setSelectedFilters] = useState({
+    Size: [],
+    Color: [],
+  });
+  const [filters, setFilters] = useState([]);
+  const location = useLocation();
   // const [products, setProducts] = useState([]);
   // const [search, setSearch] = useState("");
 
@@ -86,7 +55,16 @@ export default function Search() {
 
   const getProducts = ({ pageParam = 1 }, search) => {
     // await api.get(`${process.env.REACT_APP_API_ABSOLUTE}/sanctum/csrf-cookie`);
-    return api.get(`/products?search=${search}&page=${pageParam}`);
+    let cat = location?.state?.category;
+    return api.post(
+      `/products/search?search=${search}&page=${pageParam}&category=${
+        cat ? cat?.id : ""
+      }`,
+      {
+        colors: [...new Set(selectedFilters?.Color)],
+        sizes: [...new Set(selectedFilters?.Size)],
+      }
+    );
   };
 
   const {
@@ -96,6 +74,7 @@ export default function Search() {
     isFetching,
     isFetchingNextPage,
     isLoading,
+    refetch,
   } = useInfiniteQuery(
     ["search-products", search],
     (props) => getProducts(props, search),
@@ -107,8 +86,29 @@ export default function Search() {
           return +pages.data.current_page + 1;
         }
       },
+      onSettled: (data) => console.log(data),
     }
   );
+
+  const handleFilterChange = (value, option, name) => {
+    // console.log(value);
+    if (selectedFilters[name].indexOf(option.name) === -1) {
+      setSelectedFilters((old) => {
+        return { ...old, [name]: [...new Set([...old[name], option.name])] };
+      });
+    } else {
+      setSelectedFilters((old) => {
+        return { ...old, [name]: old[name].filter((o) => o !== option.name) };
+      });
+    }
+    // setSelectedFilters((old) => {
+    //   return { ...old, [name]: [...new Set([...old[name], option.label])] };
+    // });
+
+    console.log("====================================");
+    console.log("filters", selectedFilters);
+    console.log("====================================");
+  };
 
   const handleScroll = (e) => {
     const bottom =
@@ -117,17 +117,28 @@ export default function Search() {
       e.target.scrollingElement.clientHeight;
     if (bottom) {
       fetchNextPage();
-      console.log("dasdasdsa");
     }
   };
 
+  const getFilters = async () => {
+    const res = await api.get("/search/filters");
+    console.log(res);
+    setFilters(res.data);
+  };
+
   useEffect(() => {
+    getFilters();
+
     window.addEventListener("scroll", (e) => handleScroll(e));
 
     return () => {
       window.removeEventListener("scroll", (e) => handleScroll(e));
     };
   }, []);
+
+  useEffect(() => {
+    refetch();
+  }, [selectedFilters]);
 
   return (
     <div className="bg-white">
@@ -221,22 +232,29 @@ export default function Search() {
                             <div className="space-y-6">
                               {section.options.map((option, optionIdx) => (
                                 <div
-                                  key={option.value}
+                                  key={optionIdx}
                                   className="flex items-center"
                                 >
                                   <input
                                     id={`filter-mobile-${section.id}-${optionIdx}`}
                                     name={`${section.id}[]`}
-                                    defaultValue={option.value}
+                                    defaultValue={option.name}
                                     type="checkbox"
                                     defaultChecked={option.checked}
+                                    onChange={(e) =>
+                                      handleFilterChange(
+                                        e.target.value,
+                                        option,
+                                        section?.name
+                                      )
+                                    }
                                     className="h-4 w-4 border-gray-300 rounded text-primaryDark focus:ring-primaryDark"
                                   />
                                   <label
                                     htmlFor={`filter-mobile-${section.id}-${optionIdx}`}
                                     className="ml-3 min-w-0 flex-1 text-gray-500"
                                   >
-                                    {option.label}
+                                    {option.name}
                                   </label>
                                 </div>
                               ))}
@@ -254,8 +272,9 @@ export default function Search() {
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative z-10 flex items-baseline justify-between pt-5 pb-6 border-b border-gray-200">
-            <h1 className="text-4xl font-extrabold tracking-tight text-gray-900">
-              Search Results for
+            <h1 className="text-2xl font-extrabold tracking-tight text-gray-900">
+              Search Results for{" "}
+              <span className="text-2xl font-medium">"{search}"</span>
             </h1>
 
             <div className="flex items-center">
@@ -374,22 +393,29 @@ export default function Search() {
                           <div className="space-y-4">
                             {section.options.map((option, optionIdx) => (
                               <div
-                                key={option.value}
+                                key={optionIdx}
                                 className="flex items-center"
                               >
                                 <input
                                   id={`filter-${section.id}-${optionIdx}`}
                                   name={`${section.id}[]`}
-                                  defaultValue={option.value}
+                                  defaultValue={option.name}
                                   type="checkbox"
                                   defaultChecked={option.checked}
+                                  onChange={(e) =>
+                                    handleFilterChange(
+                                      e.target.value,
+                                      option,
+                                      section?.name
+                                    )
+                                  }
                                   className="h-4 w-4 border-gray-300 rounded text-primaryDark focus:ring-primaryDark"
                                 />
                                 <label
                                   htmlFor={`filter-${section.id}-${optionIdx}`}
                                   className="ml-3 text-sm text-gray-600"
                                 >
-                                  {option.label}
+                                  {option.name}
                                 </label>
                               </div>
                             ))}

@@ -17,6 +17,13 @@ import Stats from "./pages/admin/Stats";
 import Home from "./pages/user/Home";
 import Search from "./pages/user/Search";
 import { QueryClient, QueryClientProvider } from "react-query";
+import Landing from "./pages/user/Landing";
+import ProductDetails from "./pages/user/ProductDetails";
+import OrderSummary from "./pages/user/OrderSummary";
+import CurrencyContext from "./contexts/currencyContext";
+import { getCurrency, setCurrency as setStorageCurrency } from "./api/currency";
+import MyOrders from "./pages/user/MyOrders";
+import ProductEditForm from "./components/admin/ProductEditForm";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +46,16 @@ function App() {
 
     return getUser();
   });
+  const [currency, setCurrency] = useState(() => {
+    if (!getCurrency()) {
+      return {};
+    }
+
+    return getCurrency();
+  });
+
+  const [allCurrencies, setAllCurrencies] = useState([]);
+
   const [windowWidth, setWindowWidth] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
@@ -58,8 +75,18 @@ function App() {
     // }
   }, [user]);
 
+  const getCurrencies = async () => {
+    const res = await api.get("/currencies");
+    setAllCurrencies(res.data);
+    if (Object.keys(currency).length === 0 && res.data.length > 0) {
+      setCurrency(res?.data[0]);
+    }
+  };
+
   useEffect(() => {
     setWindowWidth(window.innerWidth);
+
+    getCurrencies();
 
     window.addEventListener("resize", () => {
       setWindowWidth(window.innerWidth);
@@ -72,6 +99,10 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    setStorageCurrency(currency);
+  }, [currency]);
+
   return (
     <div className="font-lato" ref={containerRef}>
       <NavigateFunctionComponent />
@@ -79,25 +110,41 @@ function App() {
         value={{ width: windowWidth, container: containerRef }}
       >
         <UserContext.Provider value={{ user: user, setUser: setUser }}>
-          <QueryClientProvider client={queryClient}>
-            <ToastContainer className={"z-50"} autoClose={5000} />
-            <Routes>
-              <Route path="/" element={<Home />}>
-                <Route path="" element={<Search />} />
-              </Route>
-
-              <Route path="/login" element={<Auth />} />
-
-              {user.isAdmin && (
-                <Route path="/admin" element={<Dashboard />}>
-                  <Route path="products" element={<Products />} />
-                  <Route path="products/add" element={<ProductForm />} />
-                  <Route path="orders" element={<Orders />} />
-                  <Route path="stats" element={<Stats />} />
+          <CurrencyContext.Provider
+            value={{
+              currency: currency,
+              setCurrency: setCurrency,
+              all: allCurrencies,
+            }}
+          >
+            <QueryClientProvider client={queryClient}>
+              <ToastContainer className={"z-50"} autoClose={5000} />
+              <Routes>
+                <Route path="/" element={<Home />}>
+                  <Route path="" element={<Landing />} />
+                  <Route path="search" element={<Search />} />
+                  <Route path="/products/:id" element={<ProductDetails />} />
+                  <Route path="orders/:id" element={<OrderSummary />} />
+                  <Route path="my-orders" element={<MyOrders />} />
                 </Route>
-              )}
-            </Routes>
-          </QueryClientProvider>
+
+                <Route path="/login" element={<Auth />} />
+
+                {user.isAdmin && (
+                  <Route path="/admin" element={<Dashboard />}>
+                    <Route path="products" element={<Products />} />
+                    <Route path="products/add" element={<ProductForm />} />
+                    <Route
+                      path="products/edit/:pID"
+                      element={<ProductEditForm />}
+                    />
+                    <Route path="orders" element={<Orders />} />
+                    <Route path="stats" element={<Stats />} />
+                  </Route>
+                )}
+              </Routes>
+            </QueryClientProvider>
+          </CurrencyContext.Provider>
         </UserContext.Provider>
       </WindowContext.Provider>
     </div>

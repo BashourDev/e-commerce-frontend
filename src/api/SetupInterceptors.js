@@ -6,7 +6,7 @@ const SetupInterceptors = (navigate, location) => {
     if (error?.response?.status === 401 && location.pathname !== "/login") {
       console.log("err", error);
       // toast.error("wrong email or password");
-      navigate("/login");
+      // navigate("/login");
     }
     // else if (error?.response?.status === 403) {
     //   toast.error("unauthorized");

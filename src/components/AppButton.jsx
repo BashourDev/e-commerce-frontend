@@ -1,4 +1,5 @@
 import React from "react";
+import Loading from "./Loading";
 
 const AppButton = ({
   Icon,
@@ -7,6 +8,7 @@ const AppButton = ({
   className = "",
   type = "button",
   disabled = false,
+  isLoading = false,
 }) => {
   return (
     <button
@@ -16,7 +18,7 @@ const AppButton = ({
       className={`outline-none rounded-md px-3 py-1 transition duration-100 h-10 bg-primaryDark text-white hover:bg-primary hover:text-dark text-sm lg:text-base ${className}`}
     >
       {Icon && <Icon />}
-      {children}
+      {isLoading ? <Loading className="w-8 h-8" /> : children}
     </button>
   );
 };

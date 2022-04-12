@@ -1,6 +1,7 @@
 import { Fragment, useContext, useEffect, useState } from "react";
-import { Dialog, Popover, Tab, Transition } from "@headlessui/react";
+import { Dialog, Menu, Popover, Tab, Transition } from "@headlessui/react";
 import {
+  ChevronDownIcon,
   MenuIcon,
   SearchIcon,
   ShoppingBagIcon,
@@ -11,143 +12,12 @@ import Logo from "../../assets/logo.webp";
 import SearchInput from "../../components/SearchInput";
 import { MdSearch } from "react-icons/md";
 import AppButton from "../../components/AppButton";
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import UserContext from "../../contexts/userContext";
 import api from "../../api/api";
 import { removeToken } from "../../api/token";
 import { removeUser } from "../../api/user";
-import { useInfiniteQuery } from "react-query";
-import WindowContext from "../../contexts/windowContext";
-
-const navigation = {
-  categories: [
-    {
-      id: "women",
-      name: "Women",
-      featured: [
-        // {
-        //   name: "New Arrivals",
-        //   href: "#",
-        //   imageSrc:
-        //     "https://tailwindui.com/img/ecommerce-images/mega-menu-category-01.jpg",
-        //   imageAlt:
-        //     "Models sitting back to back, wearing Basic Tee in black and bone.",
-        // },
-        // {
-        //   name: "Basic Tees",
-        //   href: "#",
-        //   imageSrc:
-        //     "https://tailwindui.com/img/ecommerce-images/mega-menu-category-02.jpg",
-        //   imageAlt:
-        //     "Close up of Basic Tee fall bundle with off-white, ochre, olive, and black tees.",
-        // },
-      ],
-      sections: [
-        {
-          id: "clothing",
-          name: "Clothing",
-          items: [
-            { name: "Tops", href: "#" },
-            { name: "Dresses", href: "#" },
-            { name: "Pants", href: "#" },
-            { name: "Denim", href: "#" },
-            { name: "Sweaters", href: "#" },
-            { name: "T-Shirts", href: "#" },
-            { name: "Jackets", href: "#" },
-            { name: "Activewear", href: "#" },
-            { name: "Browse All", href: "#" },
-          ],
-        },
-        {
-          id: "accessories",
-          name: "Accessories",
-          items: [
-            { name: "Watches", href: "#" },
-            { name: "Wallets", href: "#" },
-            { name: "Bags", href: "#" },
-            { name: "Sunglasses", href: "#" },
-            { name: "Hats", href: "#" },
-            { name: "Belts", href: "#" },
-          ],
-        },
-        {
-          id: "brands",
-          name: "Brands",
-          items: [
-            { name: "Full Nelson", href: "#" },
-            { name: "My Way", href: "#" },
-            { name: "Re-Arranged", href: "#" },
-            { name: "Counterfeit", href: "#" },
-            { name: "Significant Other", href: "#" },
-          ],
-        },
-      ],
-    },
-    {
-      id: "men",
-      name: "Men",
-      featured: [
-        // {
-        //   name: "New Arrivals",
-        //   href: "#",
-        //   imageSrc:
-        //     "https://tailwindui.com/img/ecommerce-images/product-page-04-detail-product-shot-01.jpg",
-        //   imageAlt:
-        //     "Drawstring top with elastic loop closure and textured interior padding.",
-        // },
-        // {
-        //   name: "Artwork Tees",
-        //   href: "#",
-        //   imageSrc:
-        //     "https://tailwindui.com/img/ecommerce-images/category-page-02-image-card-06.jpg",
-        //   imageAlt:
-        //     "Three shirts in gray, white, and blue arranged on table with same line drawing of hands and shapes overlapping on front of shirt.",
-        // },
-      ],
-      sections: [
-        {
-          id: "clothing",
-          name: "Clothing",
-          items: [
-            { name: "Tops", href: "#" },
-            { name: "Pants", href: "#" },
-            { name: "Sweaters", href: "#" },
-            { name: "T-Shirts", href: "#" },
-            { name: "Jackets", href: "#" },
-            { name: "Activewear", href: "#" },
-            { name: "Browse All", href: "#" },
-          ],
-        },
-        {
-          id: "accessories",
-          name: "Accessories",
-          items: [
-            { name: "Watches", href: "#" },
-            { name: "Wallets", href: "#" },
-            { name: "Bags", href: "#" },
-            { name: "Sunglasses", href: "#" },
-            { name: "Hats", href: "#" },
-            { name: "Belts", href: "#" },
-          ],
-        },
-        {
-          id: "brands",
-          name: "Brands",
-          items: [
-            { name: "Re-Arranged", href: "#" },
-            { name: "Counterfeit", href: "#" },
-            { name: "Full Nelson", href: "#" },
-            { name: "My Way", href: "#" },
-          ],
-        },
-      ],
-    },
-  ],
-  pages: [
-    // { name: "Company", href: "#" },
-    // { name: "Stores", href: "#" },
-  ],
-};
+import CurrencyContext from "../../contexts/currencyContext";
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
@@ -156,62 +26,27 @@ function classNames(...classes) {
 export default function Home() {
   const [open, setOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
-  // const [products, setProducts] = useState([]);
   const [search, setSearch] = useState("");
+  const [categories, setCategories] = useState([]);
   const userContext = useContext(UserContext);
+  const currencyContext = useContext(CurrencyContext);
   const navigate = useNavigate();
-  const windowContext = useContext(WindowContext);
+  const location = useLocation();
 
   const onKeyPress = (e) => {
-    // if (e.key === "Enter") {
-    //   getProducts();
-    // }
+    if (e.key === "Enter" && !location.pathname.match("/search")) {
+      navigate("/search");
+    }
   };
 
-  // const getProducts = ({ pageParam = 1 }, search) => {
-  //   // await api.get(`${process.env.REACT_APP_API_ABSOLUTE}/sanctum/csrf-cookie`);
-  //   return api.get(`/products?search=${search}&page=${pageParam}`);
-  // };
+  const getCategories = async () => {
+    const res = await api.get("/categories");
+    setCategories(res.data);
+  };
 
-  // const {
-  //   data: products,
-  //   fetchNextPage,
-  //   hasNextPage,
-  //   isFetching,
-  //   isFetchingNextPage,
-  //   isLoading,
-  // } = useInfiniteQuery(
-  //   ["search-products", search],
-  //   (props) => getProducts(props, search),
-  //   {
-  //     getNextPageParam: (pages) => {
-  //       if (pages.data.current_page === pages.data.last_page) {
-  //         return undefined;
-  //       } else {
-  //         return +pages.data.current_page + 1;
-  //       }
-  //     },
-  //   }
-  // );
-
-  // const handleScroll = (e) => {
-  //   const bottom =
-  //     e.target.scrollingElement.scrollHeight -
-  //       e.target.scrollingElement.scrollTop ===
-  //     e.target.scrollingElement.clientHeight;
-  //   if (bottom) {
-  //     fetchNextPage();
-  //     console.log("dasdasdsa");
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   window.addEventListener("scroll", (e) => handleScroll(e));
-
-  //   return () => {
-  //     window.removeEventListener("scroll", (e) => handleScroll(e));
-  //   };
-  // }, []);
+  useEffect(() => {
+    getCategories();
+  }, []);
 
   const handleLogout = async () => {
     await api.get("/logout");
@@ -223,7 +58,9 @@ export default function Home() {
 
   return (
     <div className="bg-white">
-      <Cart open={cartOpen} setOpen={setCartOpen} />
+      {Object.keys(userContext.user).length > 0 && (
+        <Cart open={cartOpen} setOpen={setCartOpen} />
+      )}
       {/* Mobile menu */}
       <Transition.Root show={open} as={Fragment}>
         <Dialog
@@ -268,7 +105,7 @@ export default function Home() {
               <Tab.Group as="div" className="mt-2">
                 <div className="border-b border-gray-200">
                   <Tab.List className="-mb-px flex px-4 space-x-8">
-                    {navigation.categories.map((category) => (
+                    {categories.map((category) => (
                       <Tab
                         key={category.name}
                         className={({ selected }) =>
@@ -286,40 +123,12 @@ export default function Home() {
                   </Tab.List>
                 </div>
                 <Tab.Panels as={Fragment}>
-                  {navigation.categories.map((category) => (
+                  {categories.map((category) => (
                     <Tab.Panel
                       key={category.name}
                       className="pt-10 pb-8 px-4 space-y-10"
                     >
-                      <div className="grid grid-cols-2 gap-x-4">
-                        {category.featured.map((item) => (
-                          <div
-                            key={item.name}
-                            className="group relative text-sm"
-                          >
-                            <div className="aspect-w-1 aspect-h-1 rounded-lg bg-gray-100 overflow-hidden group-hover:opacity-75">
-                              <img
-                                src={item.imageSrc}
-                                alt={item.imageAlt}
-                                className="object-center object-cover"
-                              />
-                            </div>
-                            <a
-                              href={item.href}
-                              className="mt-6 block font-medium text-gray-900"
-                            >
-                              <span
-                                className="absolute z-10 inset-0"
-                                aria-hidden="true"
-                              />
-                              {item.name}
-                            </a>
-                            <p aria-hidden="true" className="mt-1">
-                              Shop now
-                            </p>
-                          </div>
-                        ))}
-                      </div>
+                      <div className="grid grid-cols-2 gap-x-4"></div>
                       {category.sections.map((section) => (
                         <div key={section.name}>
                           <p
@@ -335,12 +144,13 @@ export default function Home() {
                           >
                             {section.items.map((item) => (
                               <li key={item.name} className="flow-root">
-                                <a
-                                  href={item.href}
+                                <Link
+                                  to={"/search"}
+                                  state={{ category: item }}
                                   className="-m-2 p-2 block text-gray-500"
                                 >
                                   {item.name}
-                                </a>
+                                </Link>
                               </li>
                             ))}
                           </ul>
@@ -350,19 +160,6 @@ export default function Home() {
                   ))}
                 </Tab.Panels>
               </Tab.Group>
-
-              <div className="border-t border-gray-200 py-6 px-4 space-y-6">
-                {navigation.pages.map((page) => (
-                  <div key={page.name} className="flow-root">
-                    <a
-                      href={page.href}
-                      className="-m-2 p-2 block font-medium text-gray-900"
-                    >
-                      {page.name}
-                    </a>
-                  </div>
-                ))}
-              </div>
 
               <div className="border-t border-gray-200 py-6 px-4 space-y-6">
                 {Object.keys(userContext.user).length === 0 ? (
@@ -394,7 +191,7 @@ export default function Home() {
                         Sign out
                       </button>
                     </div>
-                    {userContext?.user?.isAdmin && (
+                    {userContext?.user?.isAdmin ? (
                       <div className="flow-root">
                         <Link
                           to={"/admin/products"}
@@ -403,23 +200,58 @@ export default function Home() {
                           Dashboard
                         </Link>
                       </div>
-                    )}
+                    ) : null}
                   </>
                 )}
               </div>
 
               <div className="border-t border-gray-200 py-6 px-4">
-                <a href="#" className="-m-2 p-2 flex items-center">
-                  {/* <img
-                    src="https://tailwindui.com/img/flags/flag-canada.svg"
-                    alt=""
-                    className="w-5 h-auto block flex-shrink-0"
-                  /> */}
-                  <span className="ml-3 block text-base font-medium text-gray-900">
-                    USD
-                  </span>
-                  <span className="sr-only">, change currency</span>
-                </a>
+                <Menu as="div" className="relative inline-block text-left">
+                  <div>
+                    <Menu.Button className="group inline-flex justify-center text-sm font-medium text-gray-700 hover:text-gray-900">
+                      {currencyContext?.currency?.name}
+                      <ChevronDownIcon
+                        className="flex-shrink-0 -mr-1 ml-1 h-5 w-5 text-gray-400 group-hover:text-gray-500"
+                        aria-hidden="true"
+                      />
+                    </Menu.Button>
+                  </div>
+
+                  <Transition
+                    as={Fragment}
+                    enter="transition ease-out duration-100"
+                    enterFrom="transform opacity-0 scale-95"
+                    enterTo="transform opacity-100 scale-100"
+                    leave="transition ease-in duration-75"
+                    leaveFrom="transform opacity-100 scale-100"
+                    leaveTo="transform opacity-0 scale-95"
+                  >
+                    <Menu.Items className="origin-top-left absolute left-0 mt-2 z-[3000] w-32 rounded-md shadow-2xl bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+                      <div className="py-1">
+                        {currencyContext?.all?.map((option) => (
+                          <Menu.Item key={option.name}>
+                            {({ active }) => (
+                              <button
+                                onClick={() =>
+                                  currencyContext.setCurrency(option)
+                                }
+                                className={classNames(
+                                  option.current
+                                    ? "font-medium text-gray-900"
+                                    : "text-gray-500",
+                                  active ? "bg-gray-100" : "",
+                                  "block px-4 py-2 text-sm w-full"
+                                )}
+                              >
+                                {option.name}
+                              </button>
+                            )}
+                          </Menu.Item>
+                        ))}
+                      </div>
+                    </Menu.Items>
+                  </Transition>
+                </Menu>
               </div>
             </div>
           </Transition.Child>
@@ -427,9 +259,6 @@ export default function Home() {
       </Transition.Root>
 
       <header className="relative bg-primary">
-        {/* <p className="bg-indigo-600 h-10 flex items-center justify-center text-sm font-medium text-white px-4 sm:px-6 lg:px-8">
-          Get free delivery on orders over $100
-        </p> */}
         <nav
           aria-label="Top"
           className="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8"
@@ -461,7 +290,7 @@ export default function Home() {
               {/* Flyout menus */}
               <Popover.Group className="hidden lg:ml-8 lg:block lg:self-stretch z-20">
                 <div className="h-full flex space-x-8">
-                  {navigation.categories.map((category) => (
+                  {categories.map((category) => (
                     <Popover key={category.name} className="flex">
                       {({ open }) => (
                         <>
@@ -497,38 +326,7 @@ export default function Home() {
                               <div className="relative bg-white">
                                 <div className="max-w-7xl mx-auto px-8">
                                   <div className="grid grid-cols-2 gap-y-10 gap-x-8 py-16">
-                                    <div className="col-start-2 grid grid-cols-2 gap-x-8">
-                                      {category.featured.map((item) => (
-                                        <div
-                                          key={item.name}
-                                          className="group relative text-base sm:text-sm"
-                                        >
-                                          <div className="aspect-w-1 aspect-h-1 rounded-lg bg-gray-100 overflow-hidden group-hover:opacity-75">
-                                            <img
-                                              src={item.imageSrc}
-                                              alt={item.imageAlt}
-                                              className="object-center object-cover"
-                                            />
-                                          </div>
-                                          <a
-                                            href={item.href}
-                                            className="mt-6 block font-medium text-gray-900"
-                                          >
-                                            <span
-                                              className="absolute z-10 inset-0"
-                                              aria-hidden="true"
-                                            />
-                                            {item.name}
-                                          </a>
-                                          <p
-                                            aria-hidden="true"
-                                            className="mt-1"
-                                          >
-                                            Shop now
-                                          </p>
-                                        </div>
-                                      ))}
-                                    </div>
+                                    <div className="col-start-2 grid grid-cols-2 gap-x-8"></div>
                                     <div className="row-start-1 grid grid-cols-3 gap-y-10 gap-x-8 text-sm">
                                       {category.sections.map((section) => (
                                         <div key={section.name}>
@@ -548,12 +346,13 @@ export default function Home() {
                                                 key={item.name}
                                                 className="flex"
                                               >
-                                                <a
-                                                  href={item.href}
+                                                <Link
+                                                  to={"/search"}
+                                                  state={{ category: item }}
                                                   className="hover:text-gray-800"
                                                 >
                                                   {item.name}
-                                                </a>
+                                                </Link>
                                               </li>
                                             ))}
                                           </ul>
@@ -570,7 +369,7 @@ export default function Home() {
                     </Popover>
                   ))}
 
-                  {navigation.pages.map((page) => (
+                  {/* {navigation.pages.map((page) => (
                     <a
                       key={page.name}
                       href={page.href}
@@ -578,7 +377,7 @@ export default function Home() {
                     >
                       {page.name}
                     </a>
-                  ))}
+                  ))} */}
                 </div>
               </Popover.Group>
 
@@ -627,7 +426,7 @@ export default function Home() {
                       >
                         Sign out
                       </button>
-                      {userContext.user.isAdmin && (
+                      {userContext?.user?.isAdmin ? (
                         <>
                           <span
                             className="h-6 w-px bg-gray-400"
@@ -640,24 +439,63 @@ export default function Home() {
                             Dashboard
                           </Link>
                         </>
-                      )}
+                      ) : null}
                     </>
                   )}
                 </div>
 
                 <div className="hidden lg:ml-8 lg:flex">
-                  <a
-                    href="#"
-                    className="text-gray-700 hover:text-gray-800 flex items-center"
-                  >
-                    {/* <img
+                  {/* <img
                       src="https://tailwindui.com/img/flags/flag-canada.svg"
                       alt=""
                       className="w-5 h-auto block flex-shrink-0"
                     /> */}
-                    <span className="ml-3 block text-sm font-medium">USD</span>
-                    <span className="sr-only">, change currency</span>
-                  </a>
+                  <Menu as="div" className="relative inline-block text-left">
+                    <div>
+                      <Menu.Button className="group inline-flex justify-center text-sm font-medium text-gray-700 hover:text-gray-900">
+                        {currencyContext?.currency?.name}
+                        <ChevronDownIcon
+                          className="flex-shrink-0 -mr-1 ml-1 h-5 w-5 text-gray-400 group-hover:text-gray-500"
+                          aria-hidden="true"
+                        />
+                      </Menu.Button>
+                    </div>
+
+                    <Transition
+                      as={Fragment}
+                      enter="transition ease-out duration-100"
+                      enterFrom="transform opacity-0 scale-95"
+                      enterTo="transform opacity-100 scale-100"
+                      leave="transition ease-in duration-75"
+                      leaveFrom="transform opacity-100 scale-100"
+                      leaveTo="transform opacity-0 scale-95"
+                    >
+                      <Menu.Items className="origin-top-right absolute right-0 mt-2 z-[3000] w-32 rounded-md shadow-2xl bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+                        <div className="py-1">
+                          {currencyContext?.all?.map((option) => (
+                            <Menu.Item key={option.name}>
+                              {({ active }) => (
+                                <button
+                                  onClick={() =>
+                                    currencyContext.setCurrency(option)
+                                  }
+                                  className={classNames(
+                                    option.current
+                                      ? "font-medium text-gray-900"
+                                      : "text-gray-500",
+                                    active ? "bg-gray-100" : "",
+                                    "block px-4 py-2 text-sm w-full"
+                                  )}
+                                >
+                                  {option.name}
+                                </button>
+                              )}
+                            </Menu.Item>
+                          ))}
+                        </div>
+                      </Menu.Items>
+                    </Transition>
+                  </Menu>
                 </div>
 
                 {/* Search */}
@@ -670,19 +508,21 @@ export default function Home() {
 
                 {/* Cart */}
                 <div className="ml-4 flow-root lg:ml-6">
-                  <button
-                    onClick={() => setCartOpen(true)}
-                    className="group -m-2 p-2 flex items-center"
-                  >
-                    <ShoppingBagIcon
-                      className="flex-shrink-0 h-6 w-6 text-gray-500 group-hover:text-gray-600"
-                      aria-hidden="true"
-                    />
-                    <span className="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800">
+                  {Object.keys(userContext.user).length > 0 && (
+                    <button
+                      onClick={() => setCartOpen(true)}
+                      className="group -m-2 p-2 flex items-center"
+                    >
+                      <ShoppingBagIcon
+                        className="flex-shrink-0 h-6 w-6 text-gray-500 group-hover:text-gray-600"
+                        aria-hidden="true"
+                      />
+                      {/* <span className="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800">
                       0
-                    </span>
-                    <span className="sr-only">items in cart, view bag</span>
-                  </button>
+                    </span> */}
+                      <span className="sr-only">items in cart, view bag</span>
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

@@ -40,7 +40,11 @@ export const Login = ({ isLogin, setIsLogin, isLoading, setIsLoading }) => {
       userContext.setUser(res?.data?.user);
       setUser(res?.data?.user);
       setToken(res?.data?.token);
-      navigate("/admin/products");
+      if (res?.data?.user?.isAdmin) {
+        navigate("/admin/products");
+      } else {
+        navigate("/");
+      }
     } catch (error) {
       if (error?.response?.status === 401) {
         toast.error("error with username or password");
@@ -114,7 +118,11 @@ export const Register = ({ isLogin, setIsLogin, isLoading, setIsLoading }) => {
       userContext.setUser(res?.data?.user);
       setUser(res?.data?.user);
       setToken(res?.data?.token);
-      navigate("/admin/products");
+      if (res?.data?.user?.isAdmin) {
+        navigate("/admin/products");
+      } else {
+        navigate("/");
+      }
     } catch (error) {
       if (error?.response?.status === 401) {
         toast.error("error with username or password");
